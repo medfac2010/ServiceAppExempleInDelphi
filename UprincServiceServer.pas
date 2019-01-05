@@ -43,7 +43,7 @@ type
     { Déclarations privées }
   public
     function GetServiceController: TServiceController; override;
-    procedure OpenTextFile(msg: string);
+    function OpenTextFile(msg: string): boolean;
     { Déclarations publiques }
   end;
 
@@ -57,14 +57,15 @@ implementation
 
 uses UFileThread;
 
-procedure TService1.OpenTextFile(msg: string);
+function TService1.OpenTextFile(msg: string):boolean;
 var  fth : TFileThread1;
 begin
 msg:= msg;
 fth := TFileThread1.Create(FileName,msg);
 if fth.CheckTerminated then
   fth.Free;
-
+sleep(1000);
+result := true;
 end;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
@@ -82,7 +83,6 @@ procedure TService1.ServiceExecute(Sender: TService);
 
 begin
 OpenTextFile(' Service Started');
-sleep(1000);
 if not(Assigned(MyServiceThread)) then
   begin
       try
@@ -105,18 +105,18 @@ else
           try
            MyServiceThread.Terminate;
           finally
-            OpenTextFile('Service Execution Teerminer');
-            MyServiceThread.Free;
+            OpenTextFile('Service Execution Terminer');
+            if MyServiceThread.CheckTerminated then
+                MyServiceThread.Free;
           end;
-        end;
+        end
+        else
+        OpenTextFile('le satatus de service <> csStopped');
      Except
-        on e: exception do
-           begin
-            OpenTextFile('Erreur dans le DoStop ->'+e.message);
-           end;
+        on e: exception do OpenTextFile('Erreur dans le DoStop ->'+e.message);
      end;
      end;
-
+  sleep(2000);
 end;
 
 procedure TService1.ServiceShutdown(Sender: TService);
@@ -126,45 +126,20 @@ end;
 
 
 procedure TService1.ServiceStop(Sender: TService; var Stopped: Boolean);
-var msg : string;
-  fth : TFileThread1;
+
 begin
 OpenTextFile(' --->>Stop<<---');
-//fth := TFileThread1.Create(FileName,'mmmmm');
-//fth.Terminate;
- sleep(1000);
-//OpenTextFile('Stop');
-//fth.Terminate;
-
-//if Assigned(MyServiceThread) then
-//  begin
     MyServiceThread.FreeOnTerminate:=true;
     MyServiceThread.Terminate;
- //   MyServiceThread.
-//    MyServiceThread.Free;
-//OpenTextFile(' Service Stoped');
-//  end
-//else
-// begin
-//   MyServiceThread.Free;
-//   msg:= msg+'#13'+DateTimeToStr(Now)+' Service ne peut pas etre Stoped';
-// end;
-//fth := TFileThread1.Create(FileName,msg);
 if (MyServiceThread.CheckTerminated) then
-begin
-MyServiceThread.Free;
-Stopped:=true;
-end;
+    MyServiceThread.Free;
+OpenTextFile(' --->>FIN DE STOOOOOP <<---');
 Stopped:=true;
 end;
 
 procedure TService1.ServiceStart(Sender: TService; var Started: Boolean);
-var msg : string;
-  fth : TFileThread1;
 begin
-msg:= ' Fichier Log crée dans :-->>Start';
-fth := TFileThread1.Create(FileName,msg);
-if fth.CheckTerminated then
+if OpenTextFile(' Fichier Log crée dans :-->>Start') then
 started:=true;
 end;
 
