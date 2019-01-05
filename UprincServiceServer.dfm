@@ -155,8 +155,9 @@ object Service1: TService1
     Top = 16
   end
   object Timer1: TTimer
+    Enabled = False
     OnTimer = Timer1Timer
-    Left = 208
-    Top = 248
+    Left = 184
+    Top = 232
   end
 end
