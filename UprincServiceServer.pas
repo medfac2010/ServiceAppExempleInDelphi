@@ -3,7 +3,7 @@ unit UprincServiceServer;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.SvcMgr, Vcl.Dialogs,
+  Winapi.Windows, Uthread1, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.SvcMgr, Vcl.Dialogs,
   IdIPAddrMon, IdUserAccounts, IdNetworkCalculator, IdIPWatch,
   IdSchedulerOfThreadDefault, IdScheduler, IdSchedulerOfThread,
   IdSchedulerOfThreadPool, IdServerIOHandler, IdSSL, IdSSLOpenSSL,
@@ -35,25 +35,37 @@ type
     IdIPAddrMon1: TIdIPAddrMon;
     IdTraceRoute1: TIdTraceRoute;
     Timer1: TTimer;
+
     procedure ServiceExecute(Sender: TService);
     procedure ServiceStart(Sender: TService; var Started: Boolean);
-    procedure ServiceStop(Sender: TService; var Stopped: Boolean);
     procedure Timer1Timer(Sender: TObject);
+    procedure ServiceCreate(Sender: TObject);
+    procedure IdIPAddrMon1StatusChanged(ASender: TObject; AAdapter: Integer;
+      AOldIP, ANewIP: string);
+    procedure TextFileApp();
+    procedure IdIPWatch1StatusChanged(Sender: TObject);
+    procedure ServiceStop(Sender: TService; var Stopped: Boolean);
+    procedure ServiceShutdown(Sender: TService);
   private
-//  timer1 : Ttimer ;
     { Déclarations privées }
+      MyServiceThread : TThread1;
   public
     function GetServiceController: TServiceController; override;
-//    procedure timer(sender : TObject );
+
     { Déclarations publiques }
   end;
+//const  FileName = 'c:\logfile.txt';
 
 var
   Service1: TService1;
-  pass : string;
+//  pass,s : string;
+//    F: TextFile;
+
 implementation
 
 {$R *.dfm}
+
+
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
@@ -61,64 +73,188 @@ begin
 end;
 
 function TService1.GetServiceController: TServiceController;
-var Stre : TfileStream;
+
 begin
   Result := ServiceController;
 end;
 
-procedure TService1.ServiceExecute(Sender: TService);
-//var Stre : TfileStream;
-//    pass : string;
-//    ft : TNotifyEvent;
+procedure TService1.IdIPAddrMon1StatusChanged(ASender: TObject;
+  AAdapter: Integer; AOldIP, ANewIP: string);
 begin
-timer1.Enabled:=true;
-while not terminated do
-begin
-ServiceThread.ProcessRequests(true);
-idipwatch1.ForceCheck;
-//idipwatch1.IPHistoryList.Find(idipwatch1.CurrentIP)
-if idipwatch1.localip<>pass then
- timer1.Enabled:=true;
-timer1.Enabled:=false;
-//pass:=IdIPwatch1.Localip;
-//if IdIPwatch1.PreviousIP<>pass then
-// begin
-//stre :=TfileStream.Create('C:\Users\mohamed\Documents\Embarcadero\Studio\Projets\PServerService\Win32\Debug\t.txt',FmOpenWrite or fmcreate);
-//stre.Writebuffer(pass,sizeof(pass));
-// end
+
+//pass := AOldIP;
+//s := ANewIP;
+//showmessage(s);
+//timer1.Enabled:=true;
+//TextFileApp;
 end;
+
+procedure TService1.IdIPWatch1StatusChanged(Sender: TObject);
+begin
+//pass:=IdIPwatch1.LocalIP;
+end;
+
+procedure TService1.ServiceCreate(Sender: TObject);
+begin
+//pass:=IdIPwatch1.LocalIP;
+//s:=pass;
+//timer1.Enabled:=true;
+end;
+
+procedure TService1.ServiceExecute(Sender: TService);
+
+begin
+
+AssignFile(f,FileName);
+      if FileExists(FileName) then
+          Append(f)
+      else
+          Rewrite(f);
+
+
+if not(Assigned(MyServiceThread)) then
+   begin
+    try
+        try
+          MyServiceThread := TThread1.Create;
+          MyServiceThread.Priority:= tpTimeCritical;
+          MyServiceThread.Resume;
+        finally
+            writeln(f,DateTimeToStr(Now),' Service threads Created');
+            CloseFile(f);
+        end;
+    except
+    on e: exception do
+     begin
+     writeln(f,DateTimeToStr(Now),e.message);
+     CloseFile(f);
+     end;
+    end;
+   end
+else
+     begin
+     try
+       service1.ReportStatus;
+      if (service1.Status = csStopped) or (service1.Status = csStopPending) then
+          begin
+          try
+            service1.DoStop;
+            service1.DoShutdown;
+          finally
+             writeln(f,DateTimeToStr(Now),' Service Execution Stoped');
+             CloseFile(f);
+          end;
+
+          end;
+     Except
+        on e: exception do
+           begin
+            writeln(f,DateTimeToStr(Now),e.message);
+            CloseFile(f);
+           end;
+     end;
+     end;
+
+//timer1.Enabled:=true;
+// while (not terminated) do
+//   begin
+//   idipwatch1..ForceCheck;
+//   IdIPAddrMon1.forcecheck;
+//        if (pass<>s) then
+//          begin
+//            TextFileApp();
+//            pass := s;
+//            timer1.Enabled:=false;
+//          end;
+       // Service1.TextFileApp
+//          ServiceThread.ProcessRequests(true);
+//          timer1.Enabled:=false;
+  //  ServiceThread.Synchronize( IdIPAddrMon1.OnStatusChanged);
+//   end;
+
+end;
+
+procedure TService1.ServiceShutdown(Sender: TService);
+begin
+AssignFile(f,FileName);
+      if FileExists(FileName) then
+          Append(f)
+      else
+          Rewrite(f);
+
+if Assigned(MyServiceThread) then
+  begin
+    // The TService must WaitFor the thread to finish (and free it)
+    // otherwise the thread is simply killed when the TService ends.
+    MyServiceThread.Terminate;
+    MyServiceThread.WaitFor;
+    FreeAndNil(MyServiceThread);
+  writeln(f,DateTimeToStr(Now),' Service Shutdown');
+
+  end
+else
+  writeln(f,DateTimeToStr(Now),'ShutdownError');
+
+  CloseFile(f);
+
 end;
 
 procedure TService1.ServiceStart(Sender: TService; var Started: Boolean);
 begin
-IdIPwatch1.Active:=true;
-pass:=IdIPwatch1.LocalIP;
-//showmessage(IdIPwatch1.LocalIP);
+//timer1.Enabled:=true;
+//IdIPwatch1.Active:=true;
+//IdIPAddrMon1.Active:=true;
+//TextFileApp;
 started := true;
 end;
 
 procedure TService1.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
-//IdIPwatch1.Active:=false;
+AssignFile(f,FileName);
+   if FileExists(FileName) then
+      Append(f)
+   else
+      Rewrite(f);
+
+if Assigned(MyServiceThread) then
+  begin
+    // The TService must WaitFor the thread to finish (and free it)
+    // otherwise the thread is simply killed when the TService ends.
+    MyServiceThread.Terminate;
+    MyServiceThread.WaitFor;
+    FreeAndNil(MyServiceThread);
+  writeln(f,DateTimeToStr(Now),' Service Stoped');
+  end
+else
+  writeln(f,DateTimeToStr(Now),' Service ne peut pas etre Stoped');
+
+ CloseFile(f);
+Stopped:=true;
+end;
+
+procedure TService1.TextFileApp;
+begin
+//  AssignFile(f,FileName);
+//   if FileExists(FileName) then
+//      Append(f)
+//   else
+//      Rewrite(f);
+//  writeln(f,DateTimeToStr(Now),' Current IP :',s,' Pervuios IP :', pass);
+//  CloseFile(f);
+//  sleep(1000);
 end;
 
 procedure TService1.Timer1Timer(Sender: TObject);
-const
-  FileName = 'c:\logfile.txt';
-var
-  F: TextFile;
-  s : string;
+
 begin
-  AssignFile(f,FileName);
- if FileExists(FileName) then Append(f)
- else
-  Rewrite(f);
-  s := IdIPwatch1.LocalIP;
-  writeln(f,DateTimeToStr(Now),'Current IP :',s,'Pervuios IP :', pass);
-  //writeln(IdIPwatch1.LocalIP,DateTimeToStr(Now),' ',DiskFree(0));
-//  ShowMessage(DateTimeToStr(Now));
-  CloseFile(f);
-  sleep(1000);
+//   idipwatch1.ForceCheck;
+//   IdIPAddrMon1.forcecheck;
+//        if (pass<>s) then
+//          begin
+//            TextFileApp();
+//            pass := s;
+//          end;
+//    ServiceThread.ProcessRequests(true);
 end;
 
 end.

@@ -2,7 +2,8 @@ program PServerService;
 
 uses
   Vcl.SvcMgr,
-  UprincServiceServer in 'UprincServiceServer.pas' {Service1: TService};
+  UprincServiceServer in 'UprincServiceServer.pas' {Service1: TService},
+  Uthread1 in 'Uthread1.pas';
 
 {$R *.RES}
 
