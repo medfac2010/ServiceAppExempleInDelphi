@@ -60,7 +60,6 @@ uses UFileThread;
 function TService1.OpenTextFile(msg: string):boolean;
 var  fth : TFileThread1;
 begin
-msg:= msg;
 fth := TFileThread1.Create(FileName,msg);
 if fth.CheckTerminated then
   fth.Free;
