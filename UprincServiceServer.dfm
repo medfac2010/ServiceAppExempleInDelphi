@@ -1,6 +1,5 @@
 object Service1: TService1
   OldCreateOrder = False
-  OnCreate = ServiceCreate
   DisplayName = 'Service2'
   OnExecute = ServiceExecute
   OnShutdown = ServiceShutdown
@@ -125,7 +124,6 @@ object Service1: TService1
   object IdIPWatch1: TIdIPWatch
     Active = True
     HistoryFilename = 'iphist.dat'
-    OnStatusChanged = IdIPWatch1StatusChanged
     Left = 376
     Top = 16
   end
@@ -146,7 +144,6 @@ object Service1: TService1
   object IdIPAddrMon1: TIdIPAddrMon
     Active = True
     Interval = 1
-    OnStatusChanged = IdIPAddrMon1StatusChanged
     Left = 296
     Top = 16
   end
@@ -158,12 +155,5 @@ object Service1: TService1
     ResolveHostNames = False
     Left = 120
     Top = 16
-  end
-  object Timer1: TTimer
-    Enabled = False
-    Interval = 5
-    OnTimer = Timer1Timer
-    Left = 184
-    Top = 232
   end
 end
