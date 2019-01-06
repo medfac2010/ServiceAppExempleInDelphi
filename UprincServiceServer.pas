@@ -81,41 +81,19 @@ end;
 procedure TService1.ServiceExecute(Sender: TService);
 
 begin
-OpenTextFile(' Service Started');
-if not(Assigned(MyServiceThread)) then
+   service1.ReportStatus;
+  if (service1.Status = csStopped) then
   begin
       try
-          try
-            MyServiceThread := TThread1.Create;
-            sleep(2000);
-          finally
-           OpenTextFile(' Service threads Created');
-          end;
-      except
-          on e: exception do OpenTextFile(e.message);
+       MyServiceThread.Terminate;
+      finally
+        OpenTextFile('Service Execution Terminer');
+        if MyServiceThread.CheckTerminated then
+            MyServiceThread.Free;
       end;
-  end
-else
-     begin
-     try
-       service1.ReportStatus;
-      if (service1.Status = csStopped) then
-        begin
-          try
-           MyServiceThread.Terminate;
-          finally
-            OpenTextFile('Service Execution Terminer');
-            if MyServiceThread.CheckTerminated then
-                MyServiceThread.Free;
-          end;
-        end
-        else
-        OpenTextFile('le satatus de service <> csStopped');
-     Except
-        on e: exception do OpenTextFile('Erreur dans le DoStop ->'+e.message);
-     end;
-     end;
-  sleep(2000);
+   end;
+   while not terminated do
+      service1.ServiceThread.ProcessRequests(true);
 end;
 
 procedure TService1.ServiceShutdown(Sender: TService);
@@ -131,14 +109,26 @@ OpenTextFile(' --->>Stop<<---');
     MyServiceThread.FreeOnTerminate:=true;
     MyServiceThread.Terminate;
 if (MyServiceThread.CheckTerminated) then
-    MyServiceThread.Free;
-OpenTextFile(' --->>FIN DE STOOOOOP <<---');
+   OpenTextFile(' --->>FIN DE STOOOOOP <<---');
 Stopped:=true;
 end;
 
 procedure TService1.ServiceStart(Sender: TService; var Started: Boolean);
 begin
-if OpenTextFile(' Fichier Log crée dans :-->>Start') then
+OpenTextFile(' Fichier Log crée dans :-->>Start');
+  if not(Assigned(MyServiceThread)) then
+    begin
+        try
+            try
+              MyServiceThread := TThread1.Create;
+              sleep(2000);
+            finally
+              OpenTextFile(' Service Started');
+            end;
+        except
+            on e: exception do OpenTextFile(e.message);
+        end;
+    end;
 started:=true;
 end;
 
